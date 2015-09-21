@@ -38,22 +38,23 @@ func main() {
 ## Documentation
 
 ### Bucket Level
-* [MakeBucket(bucket, acl) error](examples/s3/makebucket.go)
-* [BucketExists(bucket) error](examples/s3/bucketexists.go)
-* [RemoveBucket(bucket) error](examples/s3/removebucket.go)
-* [GetBucketACL(bucket) (BucketACL, error)](examples/s3/getbucketacl.go)
-* [SetBucketACL(bucket, BucketACL) error)](examples/s3/setbucketacl.go)
-* [ListObjects(bucket, prefix, recursive) <-chan ObjectStat](examples/s3/listobjects.go)
-* [ListBuckets() <-chan BucketStat](examples/s3/listbuckets.go)
-* [DropAllIncompleteUploads(bucket) <-chan error](examples/s3/dropallincompleteuploads.go)
-* [DropIncompleteUpload(bucket, object) <-chan error](examples/s3/dropincompleteuploads.go)
+* [MakeBucket(bucket, acl) error](examples/makebucket.go)
+* [BucketExists(bucket) error](examples/bucketexists.go)
+* [RemoveBucket(bucket) error](examples/removebucket.go)
+* [GetBucketACL(bucket) (BucketACL, error)](examples/getbucketacl.go)
+* [SetBucketACL(bucket, BucketACL) error)](examples/setbucketacl.go)
+* [ListObjects(bucket, prefix, recursive) <-chan ObjectStat](examples/listobjects.go)
+* [ListBuckets() <-chan BucketStat](examples/listbuckets.go)
+* [DropAllIncompleteUploads(bucket) <-chan error](examples/dropallincompleteuploads.go)
 
 ### Object Level
-* [PutObject(bucket, object, size, io.Reader) error](examples/s3/putobject.go)
-* [GetObject(bucket, object) (io.Reader, ObjectStat, error)](examples/s3/getobject.go)
-* [GetPartialObject(bucket, object, offset, length) (io.Reader, ObjectStat, error)](examples/s3/getpartialobject.go)
-* [StatObject(bucket, object) (ObjectStat, error)](examples/s3/statobject.go)
-* [RemoveObject(bucket, object) error](examples/s3/removeobject.go)
+* [PutObject(bucket, object, size, io.Reader) error](examples/putobject.go)
+* [GetObject(bucket, object) (io.Reader, ObjectStat, error)](examples/getobject.go)
+* [GetPartialObject(bucket, object, offset, length) (io.Reader, ObjectStat, error)](examples/getpartialobject.go)
+* [StatObject(bucket, object) (ObjectStat, error)](examples/statobject.go)
+* [RemoveObject(bucket, object) error](examples/removeobject.go)
+* [DropIncompleteUpload(bucket, object) <-chan error](examples/dropincompleteuploads.go)
+* [PresignedGetObject(bucket, object, expires) (string, error)](examples/presignedgetobject.go)
 
 ### API Reference
 

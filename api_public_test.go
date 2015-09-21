@@ -21,9 +21,53 @@ import (
 	"io"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/minio/minio-go-legacy"
 )
+
+func TestPresignedURL(t *testing.T) {
+	object := objectHandler(objectHandler{
+		resource: "/bucket/object",
+		data:     []byte("Hello, World"),
+	})
+	server := httptest.NewServer(object)
+	defer server.Close()
+
+	a, err := minio.New(minio.Config{Endpoint: server.URL})
+	if err != nil {
+		t.Fatal("Error")
+	}
+	// should error out for invalid access keys
+	_, err = a.PresignedGetObject("bucket", "object", time.Duration(1000)*time.Second)
+	if err == nil {
+		t.Fatal("Error")
+	}
+
+	a, err = minio.New(minio.Config{
+		Endpoint:        server.URL,
+		AccessKeyID:     "accessKey",
+		SecretAccessKey: "secretKey",
+	})
+	if err != nil {
+		t.Fatal("Error")
+	}
+	url, err := a.PresignedGetObject("bucket", "object", time.Duration(1000)*time.Second)
+	if err != nil {
+		t.Fatal("Error")
+	}
+	if url == "" {
+		t.Fatal("Error")
+	}
+	_, err = a.PresignedGetObject("bucket", "object", time.Duration(0)*time.Second)
+	if err == nil {
+		t.Fatal("Error")
+	}
+	_, err = a.PresignedGetObject("bucket", "object", time.Duration(604801)*time.Second)
+	if err == nil {
+		t.Fatal("Error")
+	}
+}
 
 func TestBucketOperations(t *testing.T) {
 	bucket := bucketHandler(bucketHandler{

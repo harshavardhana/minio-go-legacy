@@ -38,6 +38,9 @@ type API interface {
 
 	// Object Read/Write/Stat operations
 	ObjectAPI
+
+	// Presigned API
+	PresignedAPI
 }
 
 // BucketAPI - bucket specific Read/Write/Stat interface
@@ -65,6 +68,11 @@ type ObjectAPI interface {
 
 	// Drop all incomplete uploads for a given object
 	DropIncompleteUpload(bucket, object string) <-chan error
+}
+
+// PresignedAPI - object specific for now
+type PresignedAPI interface {
+	PresignedGetObject(bucket, object string, expires time.Duration) (string, error)
 }
 
 // BucketStatCh - bucket metadata over read channel
@@ -212,7 +220,18 @@ func New(config Config) (API, error) {
 
 /// Object operations
 
-// GetObject retrieve object
+/// Expires maximum is 7days - ie. 604800 and minimum is 1
+
+// PresignedGetObject get a presigned URL to retrieve an object for third party apps
+func (a apiV2) PresignedGetObject(bucket, object string, expires time.Duration) (string, error) {
+	expireSeconds := int64(expires / time.Second)
+	if expireSeconds < 1 || expireSeconds > 604800 {
+		return "", invalidArgumentError("")
+	}
+	return a.presignedGetObject(bucket, object, expireSeconds, 0, 0)
+}
+
+/// GetObject retrieve object
 
 // Downloads full object with no ranges, if you need ranges use GetPartialObject
 func (a apiV2) GetObject(bucket, object string) (io.ReadCloser, ObjectStat, error) {

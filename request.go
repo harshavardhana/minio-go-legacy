@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -43,7 +44,7 @@ type request struct {
 	req     *http.Request
 	config  *Config
 	body    io.ReadSeeker
-	expires string
+	expires int64
 }
 
 func path2BucketAndObject(path string) (bucketName, objectName string) {
@@ -151,6 +152,39 @@ func httpNewRequest(method, urlStr string, body io.Reader) (*http.Request, error
 	return req, nil
 }
 
+func newPresignedRequest(op *operation, config *Config, expires int64) (*request, error) {
+	// if no method default to POST
+	method := op.HTTPMethod
+	if method == "" {
+		method = "POST"
+	}
+
+	u := op.getRequestURL(*config)
+
+	// get a new HTTP request, for the requested method
+	req, err := httpNewRequest(method, u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// set UserAgent
+	req.Header.Set("User-Agent", config.userAgent)
+
+	// set Accept header for response encoding style, if available
+	if config.AcceptType != "" {
+		req.Header.Set("Accept", config.AcceptType)
+	}
+
+	// save for subsequent use
+	r := new(request)
+	r.config = config
+	r.expires = expires
+	r.req = req
+	r.body = nil
+
+	return r, nil
+}
+
 // newUnauthenticatedRequest - instantiate a new unauthenticated request
 func newUnauthenticatedRequest(op *operation, config *Config, body io.Reader) (*request, error) {
 	// if no method default to POST
@@ -252,14 +286,6 @@ func (r *request) Do() (resp *http.Response, err error) {
 	return transport.RoundTrip(r.req)
 }
 
-func (r *request) SetQuery(key, value string) {
-	r.req.URL.Query().Set(key, value)
-}
-
-func (r *request) AddQuery(key, value string) {
-	r.req.URL.Query().Add(key, value)
-}
-
 // Set - set additional headers if any
 func (r *request) Set(key, value string) {
 	r.req.Header.Set(key, value)
@@ -268,6 +294,27 @@ func (r *request) Set(key, value string) {
 // Get - get header values
 func (r *request) Get(key string) string {
 	return r.req.Header.Get(key)
+}
+
+// https://${S3_BUCKET}.s3.amazonaws.com/${S3_OBJECT}?AWSAccessKeyId=${S3_ACCESS_KEY}&Expires=${TIMESTAMP}&Signature=${SIGNATURE}
+func (r *request) PreSignV2() string {
+	// Add date if not present
+	d := time.Now().UTC()
+	if date := r.Get("Date"); date == "" {
+		r.Set("Date", d.Format(http.TimeFormat))
+	}
+	epochExpires := d.Unix() + r.expires
+	signText := fmt.Sprintf("GET\n\n\n%d\n%s", epochExpires, r.req.URL.Path)
+	hm := hmac.New(sha1.New, []byte(r.config.SecretAccessKey))
+	hm.Write([]byte(signText))
+
+	query := r.req.URL.Query()
+	query.Set("AWSAccessKeyId", r.config.AccessKeyID)
+	query.Set("Expires", strconv.FormatInt(epochExpires, 10))
+	query.Set("Signature", base64.StdEncoding.EncodeToString(hm.Sum(nil)))
+	r.req.URL.RawQuery = query.Encode()
+
+	return r.req.URL.String()
 }
 
 // Authorization = "AWS" + " " + AWSAccessKeyId + ":" + Signature;
@@ -286,7 +333,6 @@ func (r *request) Get(key string) string {
 //
 // CanonicalizedAmzHeaders = <described below>
 
-//
 // SignV2 the request before Do() (version 2.0)
 func (r *request) SignV2() {
 	// Add date if not present
