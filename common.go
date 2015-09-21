@@ -17,8 +17,6 @@
 package minio
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
@@ -85,41 +83,4 @@ func urlEncodeName(name string) (string, error) {
 		}
 	}
 	return encodedName, nil
-}
-
-// sum256Reader calculate sha256 sum for an input read seeker
-func sum256Reader(reader io.ReadSeeker) ([]byte, error) {
-	h := sha256.New()
-	var err error
-
-	start, _ := reader.Seek(0, 1)
-	defer reader.Seek(start, 0)
-
-	for err == nil {
-		length := 0
-		byteBuffer := make([]byte, 1024*1024)
-		length, err = reader.Read(byteBuffer)
-		byteBuffer = byteBuffer[0:length]
-		h.Write(byteBuffer)
-	}
-
-	if err != io.EOF {
-		return nil, err
-	}
-
-	return h.Sum(nil), nil
-}
-
-// sum256 calculate sha256 sum for an input byte array
-func sum256(data []byte) []byte {
-	hash := sha256.New()
-	hash.Write(data)
-	return hash.Sum(nil)
-}
-
-// sumHMAC calculate hmac between two input byte array
-func sumHMAC(key []byte, data []byte) []byte {
-	hash := hmac.New(sha256.New, key)
-	hash.Write(data)
-	return hash.Sum(nil)
 }
