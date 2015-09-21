@@ -21,6 +21,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -297,7 +298,10 @@ func (r *request) Get(key string) string {
 }
 
 // https://${S3_BUCKET}.s3.amazonaws.com/${S3_OBJECT}?AWSAccessKeyId=${S3_ACCESS_KEY}&Expires=${TIMESTAMP}&Signature=${SIGNATURE}
-func (r *request) PreSignV2() string {
+func (r *request) PreSignV2() (string, error) {
+	if r.config.AccessKeyID == "" || r.config.SecretAccessKey == "" {
+		return "", errors.New("presign requires accesskey and secretkey")
+	}
 	// Add date if not present
 	d := time.Now().UTC()
 	if date := r.Get("Date"); date == "" {
@@ -314,7 +318,7 @@ func (r *request) PreSignV2() string {
 	query.Set("Signature", base64.StdEncoding.EncodeToString(hm.Sum(nil)))
 	r.req.URL.RawQuery = query.Encode()
 
-	return r.req.URL.String()
+	return r.req.URL.String(), nil
 }
 
 // Authorization = "AWS" + " " + AWSAccessKeyId + ":" + Signature;
