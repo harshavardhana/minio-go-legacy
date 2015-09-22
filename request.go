@@ -451,9 +451,13 @@ var resourceList = []string{
 // CanonicalizedResource = [ "/" + Bucket ] +
 // 	  <HTTP-Request-URI, from the protocol name up to the query string> +
 // 	  [ sub-resource, if present. For example "?acl", "?location", "?logging", or "?torrent"];
-func (r *request) writeCanonicalizedResource(buf *bytes.Buffer) {
+func (r *request) writeCanonicalizedResource(buf *bytes.Buffer) error {
 	requestURL := r.req.URL
-	buf.WriteString(requestURL.Path)
+	encodedURLPath, err := urlEncodeName(requestURL.Path)
+	if err != nil {
+		return err
+	}
+	buf.WriteString(encodedURLPath)
 	sort.Strings(resourceList)
 	if requestURL.RawQuery != "" {
 		var n int
@@ -479,4 +483,5 @@ func (r *request) writeCanonicalizedResource(buf *bytes.Buffer) {
 			}
 		}
 	}
+	return nil
 }
